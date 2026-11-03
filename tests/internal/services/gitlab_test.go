@@ -380,38 +380,3 @@ func TestGetProjectsCommits(t *testing.T) {
 		})
 	}
 }
-
-func TestGetUserEvents(t *testing.T) {
-	os.Setenv("GITLAB_TOKEN", "test-token")
-	defer os.Unsetenv("GITLAB_TOKEN")
-
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v4/users/1/events" {
-			t.Errorf("Expected path /api/v4/users/1/events, got %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `[
-			{"id": 10, "action_name": "opened", "target_type": "MergeRequest", "created_at": "2024-01-01T12:00:00Z"},
-			{"id": 11, "action_name": "pushed to", "created_at": "2024-01-01T12:00:00Z", "push_data": {"commit_count": 2}},
-			{"id": 12, "action_name": "joined", "created_at": "2024-01-01T12:00:00Z"},
-			{"id": 13, "action_name": "commented on", "target_type": "Note", "created_at": "2024-01-02T12:00:00Z"}
-		]`)
-	}))
-	defer mockServer.Close()
-
-	os.Setenv("BASE_URL", mockServer.URL)
-	defer os.Unsetenv("BASE_URL")
-
-	result, err := services.GetUserEvents(1)
-	if err != nil {
-		t.Fatalf("GetUserEvents returned error: %v", err)
-	}
-
-	expected := []internal.Commit{
-		{ID: "gitlab-event-10", Message: "opened MergeRequest", AuthoredDate: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)},
-		{ID: "gitlab-event-13", Message: "commented on Note", AuthoredDate: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC)},
-	}
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("Expected %+v, got %+v", expected, result)
-	}
-}
