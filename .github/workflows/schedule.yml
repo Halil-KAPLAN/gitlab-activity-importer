@@ -6,6 +6,10 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
@@ -30,3 +34,11 @@ jobs:
           ORIGIN_REPO_URL: ${{ secrets.ORIGIN_REPO_URL }}
           ORIGIN_TOKEN: ${{ secrets.ORIGIN_TOKEN }}
         run: ./importer
+
+      # GitHub disables scheduled workflows after 60 days without repository activity.
+      # Re-enabling it on every run resets that timer.
+      - name: Keep workflow enabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT repos/${{ github.repository }}/actions/workflows/schedule.yml/enable
