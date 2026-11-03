@@ -65,6 +65,14 @@ func main() {
 		log.Printf("Imported %v commits.\n", totalCommits)
 	}()
 
+	events, err := services.GetUserEvents(gitLabUserID)
+	if err != nil {
+		log.Printf("Error fetching user events: %v", err)
+	} else if len(events) > 0 {
+		log.Printf("Found %d non-push events", len(events))
+		commitChannel <- events
+	}
+
 	services.FetchAllCommits(projectIds, os.Getenv("GITLAB_USERNAME"), commitChannel)
 
 	wg.Wait()
